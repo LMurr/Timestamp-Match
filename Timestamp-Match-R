@@ -23,5 +23,65 @@ CSV_Photos[which(CSV_Photos$Time < 1e+08),"Time"] <- 1e+08 + CSV_Photos[which(CS
 CSV_PQ <- CSV_Photos
 CSV_PQ <- CSV_PQ[1:500,]
 
+###  Split the timestring into groups of double and triple digits, to extract in to hour, minutes, seconds, milliseconds accordingly ###
+CSV_PQ$Timestring <- as.character(CSV_PQ$Time)
+CSV_PQ$Timestring <- gsub("(.{2})", "\\1 ", CSV_PQ$Timestring)
+CSV_PQ$Tripsplit <- as.character(CSV_PQ$Time)
+CSV_PQ$Tripsplit <- gsub("(.{3})", "\\1 ", CSV_PQ$Tripsplit)
+CSV_PQ$MS <- 0
 
-### TBC ### 
+for (i in 1:nrow(Hutton_PQ)){
+  CSV_PQ[i,"HH"] <-as.numeric(strsplit(CSV_PQ$Timestring, " ")[[i]][1])
+  CSV_PQ[i,"MM"] <-as.numeric(strsplit(CSV_PQ$Timestring, " ")[[i]][2])
+  CSV_PQ[i,"SS"] <-as.numeric(strsplit(CSV_PQ$Timestring, " ")[[i]][3])
+  CSV_PQ[i,"MS"] <-as.numeric(strsplit(CSV_PQ$Tripsplit, " ")[[i]][3])
+}
+
+SQL_DB$Time <- as.character (SQL_DB$time_string)
+SQL_DB$Time <- gsub("(.{2})", "\\1 ", SQL_DB$Time)
+SQL_DB$HH <-0
+SQL_DB$MM <-0
+SQL_DB$SS <-0
+SQL_DB$MS <-0
+SQL_DB$Tripsplit <- as.character (SQL_DB$time_string)
+SQL_DB$Tripsplit <- gsub("(.{3})", "\\1 ", SQL_DB$Tripsplit)
+
+for (i in 1:nrow(Hutton_SQLDB)){
+  SQL_DB[i,"HH"] <-as.numeric(strsplit(SQL_DB$Time, " ")[[i]][1])
+  SQL_DB[i,"MM"] <-as.numeric(strsplit(SQL_DB$Time, " ")[[i]][2])
+  SQL_DB[i,"SS"] <-as.numeric(strsplit(SQL_DB$Time, " ")[[i]][3])
+  SQL_DB[i,"MS"] <-as.numeric(strsplit(SQL_DB$Tripsplit," ")[[i]][3])
+}
+
+### Adjust number of digits of milliseconds shown ###
+options("digits.secs"=6)
+
+### Include only entries from Lane 1 ###
+
+PQ_Lane1<- CSV_PQ[which(CSV_PQ$lane_clean == 1),]
+SQL_Lane1<- SQL_DB[which(SQL_DB$lane_number == 1),]
+
+### Create timestamp object for each DB - formatis year, month, day, hour, minute, second. Milliseconds are then added to that time
+
+PQ_Lane1$Timestamp <- ISOdatetime(2018, 3, 20, PQ_Lane1$HH, PQ_Lane1$MM, PQ_Lane1$SS)
+SQL_Lane1$Timestamp <- ISOdatetime(2018, 3, 20, SQL_Lane1$HH, SQL_Lane1$MM, SQL_Lane1$SS)
+PQ_Lane1$Timestamp <- PQ_Lane1$Timestamp + (PQ_Lane1$MS/1000)
+SQL_Lane1$Timestamp <- SQL_Lane1$Timestamp + (SQL_Lane1$MS/1000)
+
+### Take only a subset of the SQL database and add time interval columns ###
+SQL_Lane1 <- SQL_Lane1[c(1:360),]
+PQ_Lane1$TimeInterval <- 0
+SQL_Lane1$TimeInterval <- 0
+
+### Loop over rows to calculate the Intervals between vehicles for each clock.
+
+for (i in 1:nrow(PQ_Lane1)){
+  PQ_Lane1[i,"TimeInterval"] <- PQ_Lane1[i+1,"Timestamp"] - PQ_Lane1[i, "Timestamp"]
+}
+
+for (i in 1:nrow(SQL_Lane1)){
+  SQL_Lane1[i,"TimeInterval"] <- SQL_Lane1[i+1,"Timestamp"] - SQL_Lane1[i, "Timestamp"]
+}
+
+#### TBC 
+
