@@ -83,5 +83,37 @@ for (i in 1:nrow(SQL_Lane1)){
   SQL_Lane1[i,"TimeInterval"] <- SQL_Lane1[i+1,"Timestamp"] - SQL_Lane1[i, "Timestamp"]
 }
 
-#### TBC 
+#### Loop over the rows again, but this time adding the time intervals together to effectivey create a new cumulative clock for the two sets respectiely
 
+SQL_Lane1 <- SQL_Lane1[c(68:283),]
+
+for(i in 2:nrow(SQL_Lane1)){
+      SQL_Lane1[i,"TimeInterval"] <- SQL_Lane1[i, "TimeInterval"] + SQL_Lane1[i-1,"TimeInterval"]
+}
+                            
+ for(i in 2:nrow(PQ_Lane1)){
+  PQ_Lane1[i,"TimeInterval"] <- PQ_Lane1[i,"TimeInterval"] + PQ_Lane1[i-1,"TimeInterval"]
+}   
+
+PQ_Lane1 <- PQ_Lane1[c(1:220),]
+
+### Create some new columns to add information in to the Photos Dataframe ###
+### This looks to find match the correct closest cumulative clocks together and adds the matching timestring, timestamp and difference in the cumulative clocks to the database ### 
+
+PQ_Lane1$SQLTimeString <-0
+PQ_Lane1$SQLTimeStamp <-0
+x<-PQ_Lane1$TimeInterval
+y<-SQL_Lane1[c(1:length(x)),"TimeInterval"]
+
+ nx <- length(x)
+  ind <- numeric(nx)
+  stamp <- numeric(nx)
+  for(i in seq_len(nx)){
+    ind[i] <- which.min(abs(x[i] - y))
+  }
+  PQ_Lane1$SQLTimeString <- SQL_Lane1[ind,"time_string"]
+  PQ_Lane1$SQLTimeStamp <- SQL_Lane1[ind,"Timestamp"]
+  PQ_Lane1$SQLTimeInterval <- SQL_Lane1[ind,"TimeInterval"]
+  PQ_Lane1$Variation <- abs(PQ_Lane1$TimeInterval - PQ_Lane1$SQLTimeInterval)
+  
+  plot(c(1:200),PQ_Lane1[1:200,"Variation"], pch=19, cex=0.5, type="p", col=3, ylab ='Difference between photo and ATC', xlab='Photo Number')
