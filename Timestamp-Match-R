@@ -1,0 +1,27 @@
+### Load-in libraries and necessary datasets ###
+library(readxl)
+library(dplyr)
+SQL_DB <- read_excel("file-path.xlsx")
+CSV_Photos <- read.csv("file-path.xlsx")
+
+### Adjust and extract only XML entries from the CSV_Photos data frame ###
+CSV_Photos <- CSV_Photos[-6120:6121,]
+CSV_Photos <- CSV_Photos[which(CSV_Photos$Extentions == ".xml"),]
+
+### Convert SQL_DB to dataframe ### 
+SQL_DB <- as.data.frame(SQL_DB)
+
+### Adjust the format of the timestrings from the CSV and SQL dataframes to remove semi-colons and underscrolls ### 
+SQL_DB$time_string <- as.numeric(gsub(':','', SQL_DB$time_string))
+CSV_Photos$Time <- as.numeric(gsub('_','',CSV_Photos$Time))
+
+### Subset only data from site number 967 ### 
+SQL_DB <- SQL_DB[which(SQL_DB$site_number == 967),]
+
+### Adjust photo data to account for erroneous timestamp by adding 1e+08 to values, then take only top 500 rows initially ###
+CSV_Photos[which(CSV_Photos$Time < 1e+08),"Time"] <- 1e+08 + CSV_Photos[which(CSV_Photos$Time < 1e+08),"Time"]
+CSV_PQ <- CSV_Photos
+CSV_PQ <- CSV_PQ[1:500,]
+
+
+### TBC ### 
